@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.mail import send_mail
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -59,7 +60,13 @@ class ForgotPasswordView(APIView):
         if uid and token and email:
             frontend_url = request.data.get('frontend_url', 'http://localhost:3000/reset-password')
             reset_url = f'{frontend_url}?uid={uid}&token={token}'
-            send_password_reset_email.delay(email, reset_url)
+            send_mail(
+                subject='Redefinicao de senha - FinanceUp',
+                message=f'Use o link para redefinir sua senha: {reset_url}',
+                from_email='no-reply@financeup.local',
+                recipient_list=[email],
+                fail_silently=True,
+            )
 
         return Response({'detail': 'Se o e-mail existir, enviaremos instrucoes para redefinicao.'}, status=status.HTTP_202_ACCEPTED)
 

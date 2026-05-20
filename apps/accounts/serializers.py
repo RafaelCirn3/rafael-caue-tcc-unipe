@@ -81,6 +81,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
@@ -93,23 +94,12 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         email = attrs.get('email', '').lower()
         password = attrs.get('password')
-        user = authenticate(
-            request=self.context.get('request'),
-            username=email,
-            password=password,
-        )
-        if not user:
-            try:
-                user_obj = User.objects.get(email__iexact=email)
-                user = authenticate(
-                    request=self.context.get('request'),
-                    username=user_obj.username,
-                    password=password,
-                )
-            except User.DoesNotExist:
-                user = None
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Credenciais invalidas.')
 
-        if not user:
+        if not user.check_password(password):
             raise serializers.ValidationError('Credenciais invalidas.')
 
         refresh = self.get_token(user)
